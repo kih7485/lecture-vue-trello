@@ -1,6 +1,7 @@
 # lecture-vue-trello
 
 > 인프런 vueJs 강의 학습자료
+
 > A Vue.js project
 
 ## Build Setup
