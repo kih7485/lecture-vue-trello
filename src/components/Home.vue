@@ -14,18 +14,24 @@
                 </a>
             </div>
         </div>
+        <AddBoard v-if="isAddBoard" @close="isAddBoard=false" @submit="onAddBoard"/>
     </div>
 </template>
 
 <script>
 import {board} from '../api'
+import AddBoard from './AddBoard.vue'
 
 export default {
+  components: {
+    AddBoard
+  },
   data() {
     return {
       loading: false,
       boards: [],
-      error: ''
+      error: '',
+      isAddBoard: false
     }
   },
   created() {
@@ -48,7 +54,13 @@ this.$refs.boardItem.forEach(el => {
         })
     },
     addBoard(){
+      this.isAddBoard = true;
         console.log('addBoard()');
+    },
+    onAddBoard(title) {
+      console.log(title);
+      board.create(title)
+      .then( () => this.fetchData() )
     }
 
   }
