@@ -1,9 +1,11 @@
 const state = {
+    token: null,
     isAddBoard: false,
     boards: [],
     board: {},
     card: {},
-    token: null
-}
-
-export default state
+    bodyColor: '#ffffff',
+    navbarColor: '#026aa7',
+  }
+  
+  export default state
