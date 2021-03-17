@@ -1,7 +1,10 @@
 <template>
-  <div class="list">
+  <div class="list" :data-list-id="data.id" :data-list-pos="data.pos">
     <div class="list-header">
-      <div class="list-header-title">{{data.title}}</div>
+      <input v-if="isEditTitle" class="form-control input-title" type="text"
+      ref="inputTitle" v-model="inputTitle" @blur="onBlurTitle" @keyup.enter="onSubmitTitle">
+      <div v-else class="list-header-title" @click="onClickTitle">{{data.title}}</div>
+      <a href="" class="delete-list-btn" @click.prevent="onDeleteList">&times;</a>
     </div>
     <div class="card-list">
         <card-item v-for="card in data.cards" :key="card.id" :data="card" />
@@ -19,18 +22,53 @@
 </template>
 
 <script>
+import {mapActions} from 'vuex'
 import AddCard from './AddCard.vue'
 import CardItem from './CardItem.vue'
+
 export default {
     components: {
         AddCard,
         CardItem
     },
     props: ['data'],
+    created() {
+      this.inputTitle = this.data.title
+    },
     data() {
         return {
-            isAddCard : false    
+            isAddCard : false,
+            isEditTitle: false,
+            inputTitle: '' 
         }
+    },
+    methods:{
+      ...mapActions([
+        'UPDATE_LIST',
+        'DELETE_LIST'
+      ]),
+      onClickTitle(){
+        this.isEditTitle = true
+        this.$nextTick(() => this.$refs.inputTitle.focus())
+      },
+      onBlurTitle(){
+        this.isEditTitle = false;
+      },
+      onSubmitTitle(){
+        this.onBlurTitle()
+        this.inputTitle = this.inputTitle.trim()
+        if(!this.inputTitle) return;
+
+        const id = this.data.id
+        const title = this.inputTitle
+        if(title == this.data.title) return;
+
+        this.UPDATE_LIST({id, title})
+      },
+      onDeleteList(){
+        if(!confirm(`Delete ${this.data.title} list?`)) return;
+        this.DELETE_LIST({id: this.data.id})
+      }
     }
 }
 </script>

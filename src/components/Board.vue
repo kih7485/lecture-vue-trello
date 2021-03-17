@@ -3,16 +3,22 @@
     <div class="board-wrapper">
       <div class="board">
         <div class="board-header">
-          <span class="board-title">{{board.title}}</span>
+          <input class="form-control" v-if="isEditTitle" type="text" ref="inputTitle" v-model="inputTitle"
+            @blur="onSubmitTitle" @keyup.enter="onSubmitTitle">
+          <span v-else class="board-title" @click="onClickTitle">{{board.title}}</span>
           <a class="board-header-btn show-menu" href="" @click.prevent="onShowSettings">
             ... Show Menu
           </a>
         </div>
         <div class="list-section-wrapper">
           <div class="list-section">
-            <div class="list-wrapper" v-for="list in board.lists" :key="list.pos">
+            <div class="list-wrapper" v-for="list in board.lists" :key="list.pos"
+              :data-list-id="list.id">
                 <List :data="list" />
-              </div>
+            </div>
+            <div class="list-wrapper">
+              <add-list></add-list>
+            </div>
           </div>
         </div>
       </div>
@@ -27,13 +33,17 @@ import {mapState, mapMutations, mapActions} from 'vuex'
 import List from './List.vue'
 import dragger from '../utils/dragger'
 import BoardSettings from './BoardSettings.vue'
+import AddList from './AddList.vue'
 export default {
-  components: { List, BoardSettings },
+  components: { List, BoardSettings, AddList},
   data() {
     return {
       bid: 0,
       loading: false,
-      cDragger: null
+      cDragger: null,
+      lDragger: null,
+      isEditTitle: false,
+      inputTitle: ''
     }
   },
   computed: {
@@ -44,12 +54,14 @@ export default {
   },
   created() {
     this.fetchData().then(() => {
+      this.inputTitle = this.board.title
       this.SET_THEME(this.board.bgColor);
     });
     this.SET_IS_SHOW_BOARD_SETTINGS(false);
   },
   updated() {
     this.setCardDragabble()
+    this.setListDraggabble()
   },
   methods: {
     ...mapMutations([
@@ -58,7 +70,9 @@ export default {
     ]),
     ...mapActions([
       'FETCH_BOARD',
-      'UPDATE_CARD'
+      'UPDATE_BOARD',
+      'UPDATE_CARD',
+      'UPDATE_LIST'
     ]),
     fetchData() {
       this.loading = true
@@ -88,8 +102,55 @@ export default {
         this.UPDATE_CARD(targetCard)
       })
     },
+    setListDraggabble(){
+      if (this.lDragger) this.lDragger.destroy()
+
+      const options = {
+        invalid: (el, handle) => !/^list/.test(handle.className) 
+      }
+    
+      this.lDragger = dragger.init(
+        Array.from(this.$el.querySelectorAll('.list-section')),
+        options
+      )
+      this.lDragger.on('drop', (el, wrapper, target, silblings) => {
+        const targetList = {
+          id: el.dataset.listId * 1, 
+          pos: 65535,
+        }
+        const {prev, next} = dragger.sibling({
+          el, 
+          wrapper, 
+          candidates: Array.from(wrapper.querySelectorAll('.list')), 
+          type: 'list'
+        })
+        
+        if (!prev && next) targetList.pos = next.pos / 2
+        else if (!next && prev) targetList.pos = prev.pos * 2
+        else if (next && prev) targetList.pos = (prev.pos + next.pos) / 2
+        this.UPDATE_LIST(targetList)
+      })
+    },
     onShowSettings(){
         this.SET_IS_SHOW_BOARD_SETTINGS(true);
+    },
+    onClickTitle(){
+      this.isEditTitle = true;
+
+      //$nextTick() : nextTick으로 감싼뒤 callback을 통해 DOM을 조작하게 되면 
+      //Vue.js에서 데이터갱신 후 UI까지 완료한 뒤에 nextTick에 있는 함수를 최종적으로 수행하게 된다.
+      this.$nextTick(() => this.$refs.inputTitle.focus());
+    },
+    onSubmitTitle(){
+      this.isEditTitle = false;
+      this.inputTitle = this.inputTitle.trim()
+      if(!this.inputTitle) return;
+
+      const id = this.board.id
+      const title = this.inputTitle
+      if(title === this.board.title) return;
+
+      this.UPDATE_BOARD({id, title})
     }
   }
 }
